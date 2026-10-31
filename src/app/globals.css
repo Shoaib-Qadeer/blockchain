@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+/*
+  AIRcoin — the class notebook.
+  A blockchain is a shared notebook, so the whole app is drawn on French
+  "Seyès" exercise-book paper: blue ruling, a red margin, ink, highlighters,
+  sticky notes and rubber stamps.
+*/
+
+@theme {
+  --color-paper: #f4f6fb;
+  --color-sheet: #ffffff;
+  --color-rule: #cdd6f1;
+  --color-rule-strong: #a8b5e3;
+  --color-margin: #e8505b;
+  --color-ink: #1b2559;
+  --color-ink-soft: #5b6593;
+  --color-ink-faint: #9aa3c7;
+  --color-hl-yellow: #ffe14d;
+  --color-hl-pink: #ff6aa8;
+  --color-hl-mint: #7ff0c4;
+  --color-ok: #109c6c;
+  --color-bad: #df2f3a;
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 24;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+/* Seyès ruling: fine lines every 8px, a stronger line every 32px, vertical every 32px */
+.seyes {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(to right, transparent 55px, color-mix(in srgb, var(--color-margin) 70%, transparent) 55px, color-mix(in srgb, var(--color-margin) 70%, transparent) 57px, transparent 57px),
+    linear-gradient(to bottom, var(--color-rule-strong) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-rule) 65%, transparent) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--color-rule) 70%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 8px 8px, 32px 32px;
+}
+
+.seyes-plain {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(to bottom, var(--color-rule-strong) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-rule) 65%, transparent) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--color-rule) 70%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px, 8px 8px, 32px 32px;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 96, "wdth" 75;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero" 1;
+}
+
+/* a strip of masking tape */
+.tape::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 72px;
+  height: 20px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: color-mix(in srgb, #f3e3b0 75%, transparent);
+  box-shadow: 0 1px 1px rgba(27, 37, 89, 0.12);
+}
+
+/* index-card / notebook page */
+.sheet {
+  background: var(--color-sheet);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 var(--color-ink);
+}
+
+.note {
+  background: #fff3a6;
+  box-shadow:
+    0 1px 0 rgba(27, 37, 89, 0.1),
+    0 10px 18px -12px rgba(27, 37, 89, 0.55);
+}
+
+.hl {
+  background: linear-gradient(104deg, transparent 0.6em, var(--hl, var(--color-hl-yellow)) 0.7em, var(--hl, var(--color-hl-yellow)) calc(100% - 0.4em), transparent calc(100% - 0.3em));
+  padding: 0 0.35em;
+  margin: 0 -0.15em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* chunky, pressable buttons that look like stamped stickers */
+.btn {
+  position: relative;
+  border: 2px solid var(--color-ink);
+  border-radius: 14px;
+  box-shadow: 0 5px 0 var(--color-ink);
+  font-weight: 750;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background 150ms ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--color-ink);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--color-hl-pink);
+  outline-offset: 3px;
+}
+
+.chip {
+  border: 1.5px solid var(--color-ink);
+  border-radius: 999px;
+  font-weight: 650;
+  transition: background 120ms ease, color 120ms ease;
+}
+.chip[data-on="true"] {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.marching {
+  stroke-dasharray: 6 8;
+  animation: march 0.9s linear infinite;
+}
+@keyframes march {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+.wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
