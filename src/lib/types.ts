@@ -87,6 +87,13 @@ export interface Game {
   mining: MiningRound | null;
   market: Market | null;
   news: NewsEvent | null;
+  /** when the current round started (for countdowns and banners) */
+  phaseStartedAt?: number;
+  /** autopilot: when the current round ends by itself; null = waits for the host */
+  phaseEndsAt?: number | null;
+  autopilot?: boolean;
+  /** autopilot: index of the next scheduled news card */
+  autoNews?: number;
 }
 
 export interface Player {

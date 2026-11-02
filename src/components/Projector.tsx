@@ -13,6 +13,7 @@ import { NewsFlash, PriceChart, PriceTicker, TradeFeed } from "./Market";
 import { Mempool } from "./Mempool";
 import { easeFactor } from "./MinerPad";
 import { NetworkMap } from "./NetworkMap";
+import { Countdown, RoundBanner } from "./Rounds";
 
 export function Projector({ admin = false }: { admin?: boolean }) {
   const { live, error, refresh } = useLive(600);
@@ -66,6 +67,7 @@ function Stage({ live, admin, refresh }: { live: Live; admin: boolean; refresh: 
             </li>
           ))}
         </ol>
+        <Countdown endsAt={game.phaseEndsAt} startedAt={game.phaseStartedAt} now={now} big />
         {game.phase !== "lobby" && (
           <div className="text-right text-lg font-semibold leading-tight">
             <div>
@@ -96,6 +98,7 @@ function Stage({ live, admin, refresh }: { live: Live; admin: boolean; refresh: 
       </AnimatePresence>
 
       <NewsFlash news={game.news} now={now} big />
+      <RoundBanner phase={game.phase} startedAt={game.phaseStartedAt} now={now} big />
       {admin && <AdminDock live={live} refresh={refresh} />}
     </main>
   );

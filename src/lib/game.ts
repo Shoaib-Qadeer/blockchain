@@ -3,6 +3,7 @@ import { cols, GAME_ID } from "./db";
 import { hashBlock, headerPrefix, makeGenesis, meetsTarget } from "./chain";
 import { sha256 } from "js-sha256";
 import { newsById } from "./news";
+import { NEWS_PLAN, NEXT_PHASE, ROUND_SECONDS } from "./rounds";
 import {
   BLOCK_TX_LIMIT,
   MEMPOOL_LIMIT,
@@ -50,6 +51,10 @@ export function freshGame(): Game {
     mining: null,
     market: null,
     news: null,
+    phaseStartedAt: now,
+    phaseEndsAt: null,
+    autopilot: false,
+    autoNews: 0,
   };
 }
 
@@ -209,13 +214,72 @@ export async function openRound(force: boolean) {
   });
 }
 
-/** Called from the state endpoint: keeps mining going without the admin clicking. */
+/**
+ * Called from the state endpoint, which every screen polls: this is the game's clock.
+ * Keeps mining going, and in autopilot ends rounds on time and fires the planned news.
+ * Every step first "claims" the change with a conditional update, so many screens polling
+ * at once still advance the game exactly once.
+ */
 export async function autoAdvance(g: Game) {
-  if (g.phase === "mine" && g.mining?.status === "won" && Date.now() - (g.mining.wonAt ?? 0) > 6500 && g.pending.length > 0) {
+  const now = Date.now();
+  const { games } = await cols();
+  let changed = false;
+
+  if (g.phase === "mine" && g.mining?.status === "won" && now - (g.mining.wonAt ?? 0) > 6500 && g.pending.length > 0) {
     await openRound(false);
-    return true;
+    changed = true;
   }
-  return false;
+
+  if (g.autopilot && g.phaseEndsAt && now >= g.phaseEndsAt) {
+    const next = NEXT_PHASE[g.phase];
+    const claim = await games.updateOne(
+      { _id: GAME_ID, phase: g.phase, phaseEndsAt: g.phaseEndsAt },
+      { $set: { phaseEndsAt: null } }
+    );
+    if (claim.modifiedCount && next) {
+      await setPhase(next);
+      return true;
+    }
+  }
+
+  if (g.autopilot && g.phase === "market" && g.market) {
+    const i = g.autoNews ?? 0;
+    const plan = NEWS_PLAN[i];
+    if (plan && now - g.market.startedAt >= plan.at * 1000) {
+      const claim = await games.updateOne({ _id: GAME_ID, autoNews: i }, { $set: { autoNews: i + 1 } });
+      if (claim.modifiedCount) {
+        await pushNews(plan.cardId);
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
+function deadline(g: Pick<Game, "autopilot">, phase: Phase, now: number) {
+  const secs = ROUND_SECONDS[phase];
+  return g.autopilot && secs ? now + secs * 1000 : null;
+}
+
+/** Autopilot on: the show runs itself from here, round by round. */
+export async function startShow() {
+  const { games } = await cols();
+  const g = await getGame();
+  await games.updateOne({ _id: GAME_ID }, { $set: { autopilot: true }, $inc: { tick: 1 } });
+  if (g.phase === "lobby") {
+    await setPhase("send");
+  } else {
+    await games.updateOne(
+      { _id: GAME_ID },
+      { $set: { phaseEndsAt: deadline({ autopilot: true }, g.phase, Date.now()) }, $inc: { tick: 1 } }
+    );
+  }
+}
+
+/** Autopilot off: rounds wait for the host again. */
+export async function stopShow() {
+  const { games } = await cols();
+  await games.updateOne({ _id: GAME_ID }, { $set: { autopilot: false, phaseEndsAt: null }, $inc: { tick: 1 } });
 }
 
 export async function reportWork(id: unknown, token: unknown, roundId: unknown, rawHashes: unknown) {
@@ -394,6 +458,9 @@ export async function setPhase(phase: Phase) {
   const { games, players } = await cols();
   // cheaters are forgiven whenever the class moves on
   await players.updateMany({ tampered: true }, { $set: { tampered: false } });
+  const now = Date.now();
+  const current = await getGame();
+  const timing = { phaseStartedAt: now, phaseEndsAt: deadline(current, phase, now) };
   if (phase === "market") {
     const n = await players.countDocuments();
     let refunds: Tx[] = [];
@@ -401,14 +468,15 @@ export async function setPhase(phase: Phase) {
     await mutate((g) => {
       if (g.market) {
         created = false;
-        return g.phase === "market" ? null : { phase };
+        return g.phase === "market" ? null : { phase, ...timing };
       }
       created = true;
       refunds = [...g.pending, ...(g.mining?.status === "open" ? g.mining.txs : [])];
       const liquidity = 50 * Math.max(4, n);
-      const now = Date.now();
       return {
         phase,
+        ...timing,
+        autoNews: 0,
         pending: [],
         mining: g.mining?.status === "open" ? null : g.mining,
         market: {
@@ -436,7 +504,7 @@ export async function setPhase(phase: Phase) {
     return;
   }
 
-  await games.updateOne({ _id: GAME_ID }, { $set: { phase, news: null }, $inc: { tick: 1 } });
+  await games.updateOne({ _id: GAME_ID }, { $set: { phase, news: null, ...timing }, $inc: { tick: 1 } });
   if (phase === "mine") {
     const g = await getGame();
     if (g.mining?.status !== "open") await openRound(true);

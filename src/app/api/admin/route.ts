@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ease, GameError, kick, openRound, pushNews, reset, setPhase, whale } from "@/lib/game";
+import { ease, GameError, kick, openRound, pushNews, reset, setPhase, startShow, stopShow, whale } from "@/lib/game";
 import { PHASES, type Phase } from "@/lib/types";
 
 import { errorResponse } from "@/lib/errors";
@@ -35,6 +35,15 @@ export async function POST(req: Request) {
         break;
       case "kick":
         await kick(String(b.id));
+        break;
+      case "start":
+        await startShow();
+        break;
+      case "stop":
+        await stopShow();
+        break;
+      case "kickMany":
+        for (const id of Array.isArray(b.ids) ? b.ids.slice(0, 80) : []) await kick(String(id));
         break;
       case "reset":
         await reset();

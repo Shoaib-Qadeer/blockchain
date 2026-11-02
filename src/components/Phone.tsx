@@ -11,6 +11,7 @@ import { Mempool } from "./Mempool";
 import { MinerPad } from "./MinerPad";
 import { NetworkMap } from "./NetworkMap";
 import { NewsFlash, PriceChart, PriceTicker } from "./Market";
+import { Countdown, HashPlayground, RoundBanner } from "./Rounds";
 
 type Toast = { id: number; text: string; tone: "ok" | "bad" };
 
@@ -175,6 +176,12 @@ function Playing({ live, me, ident, refresh }: { live: Live; me: Player; ident: 
           </div>
         </header>
 
+        {game.phaseEndsAt && (
+          <div className="-mt-2 mb-4">
+            <Countdown endsAt={game.phaseEndsAt} startedAt={game.phaseStartedAt} now={now} />
+          </div>
+        )}
+
         {!live.online && (
           <div className="mb-3 rounded-lg border-2 border-bad bg-sheet px-3 py-2 text-sm font-semibold text-bad">Reconnecting to the network…</div>
         )}
@@ -208,6 +215,7 @@ function Playing({ live, me, ident, refresh }: { live: Live; me: Player; ident: 
       </div>
 
       <NewsFlash news={game.news} now={now} />
+      <RoundBanner phase={game.phase} startedAt={game.phaseStartedAt} now={now} />
 
       <AnimatePresence>
         {toast && (
@@ -234,17 +242,19 @@ function LobbyView({ live, me }: { live: Live; me: Player }) {
   const n = live.players.findIndex((p) => p._id === me._id) + 1;
   return (
     <div className="flex flex-col gap-4">
-      <div className="sheet tape relative p-5">
-        <div className="text-sm font-semibold text-ink-soft">You joined as node {n}</div>
+      <div className="sheet relative p-5">
+        <div className="text-sm font-semibold text-ink-soft">You’re node {n} of {live.players.length}</div>
         <h2 className="display mt-1 text-4xl font-extrabold">You’re on the network</h2>
-        <p className="mt-2 leading-snug">
-          Your phone now keeps its own copy of the ledger — the notebook of who paid whom. Nobody is in charge. Look up at the big screen.
-        </p>
+        <p className="mt-2 leading-snug">Your phone now keeps its own copy of the ledger: the record of who paid whom. Nobody is in charge.</p>
+        <div className="mt-3 flex items-center gap-2 text-sm font-bold">
+          <motion.span className="h-2.5 w-2.5 rounded-full bg-ok" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.4, repeat: Infinity }} />
+          Round 1 starts when the host is ready
+        </div>
       </div>
+      <HashPlayground initial={me.name} />
       <div className="sheet aspect-[4/3] p-2">
         <NetworkMap game={live.game} players={live.players} meId={me._id} compact />
       </div>
-      <p className="text-center font-semibold text-ink-soft">{live.players.length} nodes connected</p>
     </div>
   );
 }

@@ -55,11 +55,19 @@ Twenty bots join, send, genuinely mine, some cheat, and they trade with a herd i
 
 ## On the day
 
-- Open `/admin` on the projector, unlock, press **Reset game**, then **H** to hide the dock while people join.
-- Suggested timing: Join 45 s, Send 30 s, Mine 45 s (2–3 blocks), Cheat 30 s, Market 60–90 s, Results 20 s.
-- In the market, wait ~15 s, then fire a good-news card, then a bad one, then *Exchange hacked*. Use a whale if the price is flat.
-- One of you presents, one runs the dock (or `/remote` on a phone), one helps people join.
-- Everyone must be online; the classroom Wi-Fi or mobile data both work. If someone's page looks stuck, refreshing is safe — their node is remembered on that phone.
+1. Open **`/admin`** on the projector laptop and type your `ADMIN_PASSCODE`.
+2. Press **Reset game** (in the "nodes" drawer) to clear any test players.
+3. Students scan the QR code. While they wait, their phone has a small activity: type anything and watch its fingerprint (hash) change completely when one letter changes.
+4. When everyone's in, press **Start the show**. It runs by itself, about 3½ minutes:
+   - Pay someone, 35 s
+   - Mine a block, 55 s
+   - Try to cheat, 35 s
+   - Trade AIR, 80 s (5 news events fire on their own, including an 8-second trading freeze)
+   - Results
+5. Each round opens with a banner on every screen saying what to do now and what the last round showed. A countdown runs at the top.
+6. **Pause autopilot** hands control back to you; **Next** skips ahead at any time.
+
+**Rehearsing alone:** on `/admin`, press **Add 8 practice classmates**. They join, pay each other, really mine, sometimes cheat, and trade on the news, so you can watch the whole show from one laptop. They run while the admin tab is open; **Remove** or **Reset game** clears them.
 
 ## How it works
 

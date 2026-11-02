@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Live } from "@/lib/client";
 import { NEWS } from "@/lib/news";
+import { PracticeClass } from "@/lib/practice";
+import { SHOW_SECONDS } from "@/lib/rounds";
 import { PHASES, type Phase } from "@/lib/types";
 
 const KEY = "aircoin-admin";
@@ -18,6 +20,30 @@ export function AdminDock({ live, refresh }: { live: Live; refresh: () => void }
   const [people, setPeople] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const practice = useRef<PracticeClass | null>(null);
+  const [bots, setBots] = useState(0);
+
+  // practice classmates see the same live state as everyone else
+  useEffect(() => {
+    practice.current?.update(live);
+  }, [live]);
+  useEffect(() => () => practice.current?.stop(), []);
+
+  const addBots = async () => {
+    if (!practice.current) practice.current = new PracticeClass();
+    practice.current.update(live);
+    setBusy("bots");
+    await practice.current.add(8);
+    setBots(practice.current.size);
+    setBusy(null);
+    refresh();
+  };
+  const removeBots = async () => {
+    const ids = practice.current?.ids ?? [];
+    practice.current?.stop();
+    setBots(0);
+    if (ids.length) await run("unbots", { action: "kickMany", ids });
+  };
 
   // reserve room at the bottom of the projector so the dock never hides the ledger or the chart
   useEffect(() => {
@@ -158,6 +184,34 @@ export function AdminDock({ live, refresh }: { live: Live; refresh: () => void }
             </button>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {!game.autopilot ? (
+              <button type="button" disabled={!!busy || game.phase === "results"} onClick={() => run("start", { action: "start" })} className="btn bg-hl-mint px-4 py-1.5">
+                {game.phase === "lobby" ? `Start the show (runs ${Math.round(SHOW_SECONDS / 60)} min by itself)` : "Run the rest automatically"}
+              </button>
+            ) : (
+              <button type="button" disabled={!!busy} onClick={() => run("stop", { action: "stop" })} className="btn bg-sheet px-4 py-1.5">
+                Pause autopilot
+              </button>
+            )}
+            {bots === 0 ? (
+              <button type="button" disabled={!!busy} onClick={addBots} className="btn bg-sheet px-3 py-1.5">
+                {busy === "bots" ? "Adding…" : "Add 8 practice classmates"}
+              </button>
+            ) : (
+              <button type="button" disabled={!!busy} onClick={removeBots} className="btn bg-sheet px-3 py-1.5">
+                Remove {bots} practice classmates
+              </button>
+            )}
+            <span className="text-ink-soft">
+              {game.autopilot
+                ? "Autopilot is on: rounds end on the timer and market news fires by itself."
+                : game.phase === "lobby"
+                  ? "Wait until everyone has joined, then start. Or step through manually with Next."
+                  : "Manual mode: press Next when you're ready."}
+            </span>
+          </div>
+
           {game.phase === "mine" && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <button type="button" disabled={!!busy || game.mining?.status === "open"} onClick={() => run("round", { action: "openRound" })} className="btn bg-hl-mint px-3 py-1.5">
@@ -225,6 +279,8 @@ export function AdminDock({ live, refresh }: { live: Live; refresh: () => void }
                         type="button"
                         onClick={() => {
                           setConfirmReset(false);
+                          practice.current?.stop();
+                          setBots(0);
                           run("reset", { action: "reset" });
                         }}
                         className="btn bg-bad px-3 py-1.5 text-white"
