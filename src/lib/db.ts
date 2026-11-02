@@ -12,14 +12,64 @@ const g = globalThis as unknown as {
   __aircoinIndexes?: Promise<unknown>;
 };
 
+function decodeSafe(s: string) {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
+/**
+ * Forgive the usual copy-paste mistakes in MONGODB_URI: surrounding quotes,
+ * a "MONGODB_URI=" prefix, and passwords with special characters (% @ # / :)
+ * that must be URL-encoded inside a connection string.
+ */
+export function cleanUri(raw: string) {
+  let u = raw.trim();
+  if (u.startsWith("MONGODB_URI=")) u = u.slice("MONGODB_URI=".length).trim();
+  u = u.replace(/^["'`]+|["'`]+$/g, "").trim();
+  const scheme = u.indexOf("://");
+  if (scheme < 0) {
+    throw new Error('MONGODB_URI must start with "mongodb+srv://" or "mongodb://". Copy it again from Atlas → Connect → Drivers.');
+  }
+  if (/<[^>]*>/.test(u)) {
+    throw new Error("MONGODB_URI still contains a <placeholder>. Replace <db_password> with your real password (no < > brackets).");
+  }
+  const rest = u.slice(scheme + 3);
+  // the host never contains "@", so the last "@" ends the credentials even if the password has / ? # in it
+  const at = rest.lastIndexOf("@");
+  if (at < 0) return u;
+  const creds = rest.slice(0, at);
+  const colon = creds.indexOf(":");
+  const user = colon < 0 ? creds : creds.slice(0, colon);
+  const pass = colon < 0 ? null : creds.slice(colon + 1);
+  const enc = (s: string) => encodeURIComponent(decodeSafe(s));
+  const fixed = pass === null ? enc(user) : `${enc(user)}:${enc(pass)}`;
+  return u.slice(0, scheme + 3) + fixed + rest.slice(at);
+}
+
 function client(): Promise<MongoClient> {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error("MONGODB_URI is not set. Add it to .env.local or your Vercel project settings.");
+  const raw = process.env.MONGODB_URI;
+  if (!raw) throw new Error("MONGODB_URI is not set. Add it in Vercel → Settings → Environment Variables, then redeploy.");
   if (!g.__aircoinClient) {
-    g.__aircoinClient = new MongoClient(uri, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 8000,
-    }).connect();
+    let mc: MongoClient;
+    try {
+      mc = new MongoClient(cleanUri(raw), {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 8000,
+      });
+    } catch (e) {
+      throw new Error(`MONGODB_URI is not a valid connection string (${(e as Error).message}). Copy it again from Atlas → Connect → Drivers.`);
+    }
+    g.__aircoinClient = mc.connect().catch((e: Error) => {
+      g.__aircoinClient = undefined;
+      const m = e.message || String(e);
+      if (/auth|password|credential/i.test(m)) throw new Error("MongoDB rejected the username or password in MONGODB_URI.");
+      if (/whitelist|IP|timed out|Server selection/i.test(m))
+        throw new Error("Can't reach MongoDB. In Atlas → Network Access, allow 0.0.0.0/0 so Vercel can connect.");
+      throw e;
+    });
     g.__aircoinClient.catch(() => {
       g.__aircoinClient = undefined;
     });
