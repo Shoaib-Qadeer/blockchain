@@ -19,7 +19,7 @@ export function Projector({ admin = false }: { admin?: boolean }) {
   if (!live) {
     return (
       <main className="seyes grid min-h-dvh place-items-center">
-        <p className="display text-4xl font-extrabold">{error ? `Can't reach the database: ${error}` : "Starting the network…"}</p>
+        <p className="display text-4xl font-extrabold">{error ? "Can’t reach the game server. Check Vercel → Logs for the reason." : "Starting the network…"}</p>
       </main>
     );
   }

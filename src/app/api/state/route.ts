@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { autoAdvance, getGame, listPlayers } from "@/lib/game";
 import type { StateResponse } from "@/lib/types";
+import { errorResponse } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,6 @@ export async function GET(req: Request) {
     const body: StateResponse = { serverNow: Date.now(), tick: game.tick, game, players };
     return NextResponse.json(body, { headers: noStore });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500, headers: noStore });
+    return errorResponse(e, "state");
   }
 }

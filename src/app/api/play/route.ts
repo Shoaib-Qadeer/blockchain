@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { GameError, join, reportWork, send, setTamper, submitNonce, trade } from "@/lib/game";
+import { join, reportWork, send, setTamper, submitNonce, trade } from "@/lib/game";
+
+import { errorResponse } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +25,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unknown action." }, { status: 400 });
     }
   } catch (e) {
-    const status = e instanceof GameError ? e.status : 500;
-    return NextResponse.json({ error: (e as Error).message }, { status });
+    return errorResponse(e, "play");
   }
 }

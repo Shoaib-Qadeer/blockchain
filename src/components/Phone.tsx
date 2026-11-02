@@ -49,7 +49,7 @@ export function Phone() {
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }} className="text-5xl">
             🪙
           </motion.div>
-          <p className="font-semibold">{error ? `Can't reach the network: ${error}` : "Connecting to the network…"}</p>
+          <p className="font-semibold">{error ? "Can’t reach the game right now. It will reconnect by itself." : "Connecting to the network…"}</p>
         </div>
       </Shell>
     );

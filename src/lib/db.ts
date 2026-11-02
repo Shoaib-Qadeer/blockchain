@@ -78,8 +78,8 @@ function client(): Promise<MongoClient> {
       if (/auth|password|credential/i.test(m)) {
         const d = describe(raw);
         throw new Error(
-          `MongoDB rejected the login. This deployment is using user "${d.user}" on ${d.host} with a ${d.passLength}-character password. ` +
-            `If that doesn't match Atlas → Database Access, fix MONGODB_URI in Vercel and redeploy. (${m})`
+          `MongoDB rejected the login for user "${d.user}" (${d.passLength}-character password). ` +
+            `Check Atlas → Security → Database Access, then MONGODB_URI in Vercel. (${m})`
         );
       }
       if (/whitelist|IP|timed out|Server selection/i.test(m))

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { ease, GameError, kick, openRound, pushNews, reset, setPhase, whale } from "@/lib/game";
 import { PHASES, type Phase } from "@/lib/types";
 
+import { errorResponse } from "@/lib/errors";
+
 export const dynamic = "force-dynamic";
 
 const passcode = () => process.env.ADMIN_PASSCODE || "aire";
@@ -42,7 +44,6 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
-    const status = e instanceof GameError ? e.status : 500;
-    return NextResponse.json({ error: (e as Error).message }, { status });
+    return errorResponse(e, "admin");
   }
 }
