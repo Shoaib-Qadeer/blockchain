@@ -49,6 +49,16 @@ export function cleanUri(raw: string) {
   return u.slice(0, scheme + 3) + fixed + rest.slice(at);
 }
 
+/** What the deployment is actually using, without revealing the password. */
+function describe(raw: string) {
+  try {
+    const u = new URL(cleanUri(raw).replace(/^mongodb(\+srv)?:/, "http:"));
+    return { user: decodeSafe(u.username), host: u.host.split(",")[0], passLength: decodeSafe(u.password).length };
+  } catch {
+    return { user: "?", host: "?", passLength: 0 };
+  }
+}
+
 function client(): Promise<MongoClient> {
   const raw = process.env.MONGODB_URI;
   if (!raw) throw new Error("MONGODB_URI is not set. Add it in Vercel → Settings → Environment Variables, then redeploy.");
@@ -65,7 +75,13 @@ function client(): Promise<MongoClient> {
     g.__aircoinClient = mc.connect().catch((e: Error) => {
       g.__aircoinClient = undefined;
       const m = e.message || String(e);
-      if (/auth|password|credential/i.test(m)) throw new Error("MongoDB rejected the username or password in MONGODB_URI.");
+      if (/auth|password|credential/i.test(m)) {
+        const d = describe(raw);
+        throw new Error(
+          `MongoDB rejected the login. This deployment is using user "${d.user}" on ${d.host} with a ${d.passLength}-character password. ` +
+            `If that doesn't match Atlas → Database Access, fix MONGODB_URI in Vercel and redeploy. (${m})`
+        );
+      }
       if (/whitelist|IP|timed out|Server selection/i.test(m))
         throw new Error("Can't reach MongoDB. In Atlas → Network Access, allow 0.0.0.0/0 so Vercel can connect.");
       throw e;
